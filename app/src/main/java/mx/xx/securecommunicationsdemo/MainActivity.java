@@ -33,6 +33,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Signature;
+import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPublicKeySpec;
@@ -155,7 +157,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private byte[] signRSA(byte[] msg) {
-        byte[] hash = sha1Hash(msg);
         try {
             //byte[] sign = encryptRSA(hash);
             InputStream instream = getResources().openRawResource(R.raw.client_private_pkcs8_2);
@@ -165,30 +166,21 @@ public class MainActivity extends AppCompatActivity {
             KeyFactory kf = KeyFactory.getInstance("RSA");
             PrivateKey pkPrivate = kf.generatePrivate(keySpec);
 
-            Cipher pkCipher = Cipher.getInstance("RSA/ECB/PKCS1PADDING");
-            try {
-                pkCipher.init(Cipher.ENCRYPT_MODE, pkPrivate);
-            } catch (InvalidKeyException e) {
-                e.printStackTrace();
-                return null;
-            }
+            Signature instance = Signature.getInstance("SHA1withRSA");
+            instance.initSign(pkPrivate);
+            instance.update(msg);
+            byte[] signature = instance.sign();
+            return signature;
 
-            try {
-                return pkCipher.doFinal(hash);
-            } catch (IllegalBlockSizeException e) {
-                e.printStackTrace();
-                return null;
-            } catch (BadPaddingException e) {
-                e.printStackTrace();
-                return null;
-            }
         } catch (IOException e) {
             e.printStackTrace();
         } catch (InvalidKeySpecException e) {
             e.printStackTrace();
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
-        } catch (NoSuchPaddingException e) {
+        } catch (SignatureException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
             e.printStackTrace();
         }
         return null;
