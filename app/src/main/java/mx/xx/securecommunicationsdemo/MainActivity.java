@@ -54,6 +54,8 @@ public class MainActivity extends AppCompatActivity {
 
     public static String TAG = "SCOMM";
     private Button button;
+    private EditText plainInput;
+    private EditText responseEditText;
 
     private class ReadTask extends AsyncTask<String, Integer, String> {
         @Override
@@ -80,11 +82,23 @@ public class MainActivity extends AppCompatActivity {
                 InputStream in = conn.getInputStream();
                 BufferedReader r = new BufferedReader(new InputStreamReader(in));
                 StringBuilder total = new StringBuilder();
+
                 String line;
+
                 while ((line = r.readLine()) != null) {
                     total.append(line);
                 }
                 Log.d(TAG, total.toString());
+
+                final String text = total.toString();
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        responseEditText.setText(text);
+                    }
+                });
+
                 return total.toString();
             } catch (MalformedURLException e) {
                 e.printStackTrace();
@@ -123,7 +137,6 @@ public class MainActivity extends AppCompatActivity {
             return null;
         }
     }
-
     private static byte[] encryptAES(byte[] key, byte[] clear, byte[] iv) throws Exception {
         SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");
         IvParameterSpec ivSpec = new IvParameterSpec(iv);
@@ -141,19 +154,6 @@ public class MainActivity extends AppCompatActivity {
         cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivSpec);
         byte[] decrypted = cipher.doFinal(encrypted);
         return Base64.encodeToString(decrypted, Base64.DEFAULT);
-    }
-
-    private byte[] sha1Hash(byte[] bytes) {
-        byte[] hash = null;
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-1");
-            digest.update(bytes, 0, bytes.length);
-            hash = digest.digest();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-
-        return hash;
     }
 
     private byte[] signRSA(byte[] msg) {
@@ -186,11 +186,12 @@ public class MainActivity extends AppCompatActivity {
         return null;
     }
 
-    public void startComm() {
+    public void startComm(String msg) {
         String keyStr = "00112233445566778899aabbccddeeff";
         String ivStr = "1111111111111111";
         byte[] key = keyStr.getBytes();
-        byte[] plain = "0123456789abcdef".getBytes();
+        //byte[] plain = "0123456789abcdef".getBytes();
+        byte[] plain = msg.getBytes();
         byte[] iv = ivStr.getBytes();
         String endpointURL = "https://singleframesecurity.net:9999/request";
         try {
@@ -228,9 +229,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         button = (Button) findViewById(R.id.sendButton);
+        plainInput = (EditText) findViewById(R.id.messageText);
+        responseEditText = (EditText) findViewById(R.id.responseText);
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View arg0) {
-                startComm();
+                startComm(plainInput.getText().toString());
             }
         });
     }
