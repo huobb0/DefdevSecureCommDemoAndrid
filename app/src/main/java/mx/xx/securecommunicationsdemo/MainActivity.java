@@ -56,6 +56,10 @@ public class MainActivity extends AppCompatActivity {
     private Button button;
     private EditText plainInput;
     private EditText responseEditText;
+    public String keyStr = "00112233445566778899aabbccddeeff";
+    public String ivStr = "1111111111111111";
+    public byte[] key = keyStr.getBytes();
+    public byte[] iv = ivStr.getBytes();
 
     private class ReadTask extends AsyncTask<String, Integer, String> {
         @Override
@@ -88,14 +92,23 @@ public class MainActivity extends AppCompatActivity {
                 while ((line = r.readLine()) != null) {
                     total.append(line);
                 }
-                Log.d(TAG, total.toString());
+                Log.d(TAG, "Received: " + total.toString());
 
-                final String text = total.toString();
+                final String backText = total.toString();
 
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        responseEditText.setText(text);
+                        int endIndex = backText.indexOf("</response>");
+                        String substr = backText.substring(10,endIndex);
+                        byte[] encResp = Base64.decode(substr,Base64.DEFAULT);
+                        try {
+                            String decResp = decryptAES(key,encResp,iv);
+                            responseEditText.setText(new String(Base64.decode(decResp,Base64.DEFAULT),"UTF-8"));
+                        } catch (Exception e) {
+                            responseEditText.setText("Error decrypting " + substr);
+                            e.printStackTrace();
+                        }
                     }
                 });
 
@@ -143,7 +156,6 @@ public class MainActivity extends AppCompatActivity {
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding");
         cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
         byte[] encrypted = cipher.doFinal(clear);
-        Log.d(TAG, " iv = " + new String(cipher.getIV()));
         return encrypted;
     }
 
@@ -187,23 +199,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startComm(String msg) {
-        String keyStr = "00112233445566778899aabbccddeeff";
-        String ivStr = "1111111111111111";
-        byte[] key = keyStr.getBytes();
-        //byte[] plain = "0123456789abcdef".getBytes();
         byte[] plain = msg.getBytes();
-        byte[] iv = ivStr.getBytes();
         String endpointURL = "https://singleframesecurity.net:9999/request";
         try {
 
             byte[] aesresult = encryptAES(key, plain, iv);
             String aesresultString = Base64.encodeToString(aesresult, Base64.DEFAULT);
-            Log.d(TAG, aesresultString);
+            Log.d(TAG, "AES encryption result: " + aesresultString);
 
             String toEncrypt = keyStr + "|" + ivStr;
             byte[] rsaresult = encryptRSA(toEncrypt.getBytes());
             String rsaresultString = Base64.encodeToString(rsaresult, Base64.DEFAULT);
-            Log.d(TAG, rsaresultString);
+            Log.d(TAG, "RSA encryption result: " + rsaresultString);
 
             byte[] rsasignature = signRSA(aesresult);
             Log.d(TAG,"RSA signature: " + new String(rsasignature));
