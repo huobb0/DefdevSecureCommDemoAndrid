@@ -200,7 +200,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void startComm(String msg) {
         byte[] plain = msg.getBytes();
-        String endpointURL = "https://api.vulnabank.com:9998/request";
+        String endpointURL = "https://2006.labs.defdev.eu:9998/request";
         try {
 
             byte[] aesresult = encryptAES(key, plain, iv);
